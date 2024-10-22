@@ -498,3 +498,4 @@ healthchecksdb
 *.local.json
 /docs/.$schema.drawio.bkp
 /docs/.$schema.drawio.dtmp
+/.$Diagrama.drawio.bkp

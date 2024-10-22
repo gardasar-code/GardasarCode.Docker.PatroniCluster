@@ -1,0 +1,170 @@
+networks:
+  patroni-cluster:
+    name: patroni-cluster
+    driver: bridge
+
+services:
+  
+  etcd1:
+    image: bitnami/etcd:latest
+    container_name: etcd1
+    hostname: etcd1
+    environment:
+      ETCDCTL_API: 3
+      ALLOW_NONE_AUTHENTICATION: yes
+      ETCD_NAME: etcd1
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd1:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd1:2379
+      ETCD_INITIAL_CLUSTER: default=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: tutorial
+    volumes:
+      - etcd-data1:/bitnami/etcd/
+    networks:
+      - patroni-cluster
+
+  etcd2:
+    image: bitnami/etcd:latest
+    container_name: etcd2
+    hostname: etcd2
+    environment:
+      ETCDCTL_API: 3
+      ALLOW_NONE_AUTHENTICATION: yes
+      ETCD_NAME: etcd2
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd2:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd2:2379
+      ETCD_INITIAL_CLUSTER: default=http://etcd2:2380,etcd1=http://etcd1:2380,etcd3=http://etcd3:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: tutorial
+    volumes:
+      - etcd-data2:/bitnami/etcd/
+    networks:
+      - patroni-cluster
+
+  etcd3:
+    image: bitnami/etcd:latest
+    container_name: etcd3
+    hostname: etcd3
+    environment:
+      ETCDCTL_API: 3
+      ALLOW_NONE_AUTHENTICATION: yes
+      ETCD_NAME: etcd3
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd3:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd3:2379
+      ETCD_INITIAL_CLUSTER: default=http://etcd3:2380,etcd2=http://etcd1:2380,etcd3=http://etcd2:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: tutorial
+    volumes:
+      - etcd-data3:/bitnami/etcd/
+    networks:
+      - patroni-cluster
+  
+  patroni-node1:
+    image: patroni:latest
+    container_name: patroni-node1
+    hostname: patroni-node1
+    environment:
+      ETCDCTL_ENDPOINTS: http://etcd1:2379,http://etcd2:2379,http://etcd3:2379
+      PATRONI_ETCD3_HOSTS: "'etcd1:2379','etcd2:2379','etcd3:2379'"
+      PATRONI_SCOPE: patroni-cluster
+      PATRONI_NAME: patroni-node1
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-node1:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-node1:5432
+      PATRONI_SUPERUSER_USERNAME: ${POSTGRES_USER}
+      PATRONI_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_REPLICATION_USERNAME: ${POSTGRES_REPLICATION_USER}
+      PATRONI_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5435:5432"
+      - "8008:8008"
+    volumes:
+      - node1_data:/var/lib/postgresql/data
+    networks:
+      - patroni-cluster
+  
+  patroni-node2:
+    image: patroni:latest
+    container_name: patroni-node2
+    hostname: patroni-node2
+    environment:
+      ETCDCTL_ENDPOINTS: http://etcd1:2379,http://etcd2:2379,http://etcd3:2379
+      PATRONI_ETCD3_HOSTS: "'etcd1:2379','etcd2:2379','etcd3:2379'"
+      PATRONI_SCOPE: patroni-cluster
+      PATRONI_NAME: patroni-node2
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-node2:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-node2:5432
+      PATRONI_SUPERUSER_USERNAME: ${POSTGRES_USER}
+      PATRONI_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_REPLICATION_USERNAME: ${POSTGRES_REPLICATION_USER}
+      PATRONI_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5436:5432"
+      - "8009:8008"
+    volumes:
+      - node2_data:/var/lib/postgresql/data
+    networks:
+      - patroni-cluster
+  
+  patroni-node3:
+    image: patroni:latest
+    container_name: patroni-node3
+    hostname: patroni-node3
+    environment:
+      ETCDCTL_ENDPOINTS: http://etcd1:2379,http://etcd2:2379,http://etcd3:2379
+      PATRONI_ETCD3_HOSTS: "'etcd1:2379','etcd2:2379','etcd3:2379'"
+      PATRONI_SCOPE: patroni-cluster
+      PATRONI_NAME: patroni-node3
+      PATRONI_RESTAPI_CONNECT_ADDRESS: patroni-node3:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: patroni-node3:5432
+      PATRONI_SUPERUSER_USERNAME: ${POSTGRES_USER}
+      PATRONI_SUPERUSER_PASSWORD: ${POSTGRES_PASSWORD}
+      PATRONI_REPLICATION_USERNAME: ${POSTGRES_REPLICATION_USER}
+      PATRONI_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5437:5432"
+      - "8010:8008"
+    volumes:
+      - node3_data:/var/lib/postgresql/data
+    networks:
+      - patroni-cluster
+  
+  pgpool:
+    image: bitnami/pgpool:latest
+    container_name: pgpool
+    hostname: pgpool
+    ports:
+      - "5438:5432"
+    environment:
+      - PGPOOL_BACKEND_NODES=0:patroni-node1:5432,1:patroni-node2:5432,2:patroni-node3:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ENABLE_LDAP=no
+      - PGPOOL_ENABLE_LOAD_BALANCING=true
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ADMIN_USERNAME=${PGPOOL_ADMIN_USERNAME}
+      - PGPOOL_ADMIN_PASSWORD=${PGPOOL_ADMIN_PASSWORD}
+    healthcheck:
+      test: [ "CMD", "/opt/bitnami/scripts/pgpool/healthcheck.sh" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - patroni-cluster
+
+volumes:
+  etcd-data1:
+  etcd-data2:
+  etcd-data3:
+  node1_data:
+  node2_data:
+  node3_data:
